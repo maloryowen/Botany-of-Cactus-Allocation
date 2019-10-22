@@ -1,0 +1,186 @@
+---
+title: "Botany of Cactus Allocation"
+author: "Malory Owen & Christopher Lortie"
+date: "2019"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+
+---
+
+
+```{r, setup, include=FALSE}
+#Bring in libraries
+library(tidyverse)
+library(ggplot2)
+library(ggmap)
+library(dplyr)
+library(lmerTest)
+
+register_google(key='')
+```
+
+##Dataset
+```{r, datasets}
+#Bring in datasets of interest
+paired <- read.csv('~/Masters/Botany-of-Cactus-Allocation/data/paired_flower_fruit.csv')
+head(paired)
+
+fruit_metrics <- read.csv("~/Masters/Botany-of-Cactus-Allocation/data/fruit_metrics.csv")
+head(fruit_metrics)
+
+seed_metrics <- read.csv("~/Masters/Botany-of-Cactus-Allocation/data/seed_metrics.csv")
+head(seed_metrics)
+
+
+```
+
+##Viz
+###Maps
+```{r, viz, warning=FALSE}
+#map
+cali <- get_map(location = c(lon = -115.662, lat = 34.7812), zoom = 19)
+map <- ggmap(cali) #basemap
+
+allomap <- map +
+  geom_point(data=paired, aes(x=lon, y=lat), alpha = .5, size=2) +
+  labs(x = "longitude", y = "latitude", title = "Sampled Cacti for Allocation Observations")
+allomap
+
+
+
+```
+
+###Size
+####Absolute Size
+Here we examine different metrics for total size of a cactus against the reproductive output for each cactus (as represented by total number of floral buds).
+```{r, size, warning=FALSE}
+#size
+#three metrics: volume, new growth, branches
+
+#volume
+volume <- ggplot(paired, aes(volume)) +
+  geom_density() +
+  labs(x = "Total Volume")
+volume
+
+volumebuds <- ggplot(paired, aes(buds, volume)) +
+  geom_point() +
+  labs(x = "Reproductive Output", y = "Total Volume")
+volumebuds
+
+
+#new growth
+newgrowth <- ggplot(paired, aes(newgrowth)) +
+  geom_density() +
+  labs(x = "New Growth Branches")
+newgrowth
+
+newgrowthbuds <- ggplot(paired, aes(buds, newgrowth)) +
+  geom_point() +
+  labs(x = "New Growth Branches")
+newgrowthbuds
+
+#branches
+branches <- ggplot(paired, aes(branches)) +
+  geom_density() +
+  labs(x = "Total Branches")
+branches
+
+branchesbuds <- ggplot(paired, aes(buds, branches)) +
+  geom_point() +
+  labs(x = "Reproductive Output", y = "Total Branches")
+branchesbuds
+
+```
+There is a large skew for smaller plants in our sampling resulting in a Poisson Distribution, which makes it difficult to know if there is actually a trade off in allocation happening.  
+
+####Per Capita Size
+Because it stands that larger plants have more branches, and therefore, more apical nodes from which buds can grow, we should investigate buds-per-branch as a standardized metric for reproductive output.
+```{r}
+#add buds per branch column
+paired <- mutate(paired, budsperbranch = buds/branches)
+head(paired)
+
+#volume
+volumebuds <- ggplot(paired, aes(budsperbranch, volume)) +
+  geom_point() +
+  labs(x = "Reproductive Output", y = "Total Volume")
+volumebuds
+
+#new growth
+newgrowthbuds <- ggplot(paired, aes(budsperbranch, newgrowth)) +
+  geom_point() +
+  labs(x = "New Growth Branches")
+newgrowthbuds
+
+#branches
+branchesbuds <- ggplot(paired, aes(budsperbranch, branches)) +
+  geom_point() +
+  labs(x = "Reproductive Output", y = "Total Branches")
+branchesbuds
+
+```
+Even with accounting for buds/branch, the scatterplots of any size metric and buds as a reproductive output are funnel shaped. All this means is that future statistical models need to be built for a Poisson distribution.
+####Distributions of reproductive outputs
+```{r, repro output viz, warning=FALSE}
+ggplot(paired, aes(x=buds)) + geom_density()
+ggplot(paired, aes(x=fruits)) +geom_density()
+```
+
+
+##Models
+###Allocation between physical and reproductive structures
+```{r, allocation models, warning=FALSE}
+#Volume as a predictor for repro output
+m1 <- glm(buds~volume, data=paired, family="poisson")
+summary(m1)
+
+#New growth as predictor for repro output
+m2 <- glm(buds~newgrowth, data=paired, family="poisson")
+summary(m2)
+
+#Number of branches as predictor for repro output
+m3 <- glm(buds~branches, data=paired, family="poisson")
+summary(m3)
+
+#All are significant, so let's include all in one model
+m4 <- glm(buds~newgrowth + volume + branches, data=paired, family="poisson")
+summary(m4)
+
+m5 <- glm(buds~newgrowth + volume + branches, data=paired, family="poisson")
+summary(m5)
+
+#Let's have volume (and then again number of branches) be considered as random factors, and try some GLMMs. 
+
+m6 <- glmer(buds~newgrowth + (1|volume) + (1|branches), data=paired, family="poisson")
+anova(m6)
+```
+
+###Relationships between reproductive structures
+We have several different metrics for reproductive structure. As of now, available metrics are: 1) number of buds, 2) blooming/not blooming as of June 8th, and 3) number of fruits. We are still collecting the data on 4) seed weight, 5) seed count, 6) fruit size, and 7) fruit weight. 
+
+####Reproductive output counts
+```{r, reproductive models, error=FALSE, warning=FALSE}
+#Buds and fruits
+bf <- ggplot(paired, aes(x=buds, y=fruits)) +
+  geom_smooth()
+bf
+
+bfcor <- cor.test(paired$buds, paired$fruits, method="pearson")
+bfcor
+bbcor <- cor.test(paired$blooms, paired$fruits, method="pearson")
+bbcor
+
+m7<- glm(buds~fruits, data=paired, family="poisson")
+summary(m7)
+
+
+
+```
+
+Binomial glm models gave errors, but if we can get them to work, we can also see the relationship between blooms and other metrics, as well as the presence/absence of Cactus Wren nests.
+
+Next steps: expand models to include seed weight, seed count, fruit size, and fruit abundance. Identify what the middle/end to this story exactly is. 
+

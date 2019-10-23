@@ -85,11 +85,11 @@ Here we examine different metrics for total size of a cactus against the reprodu
 #volume
 volume <- ggplot(paired, aes(volume)) +
   geom_density() +
-  labs(x = "Total Volume")
+  labs(x = "Total Volume") 
 volume
 
 volumebuds <- ggplot(paired, aes(buds, volume)) +
-  geom_point() +
+  geom_point() + geom_smooth() +
   labs(x = "Reproductive Output", y = "Total Volume")
 volumebuds
 
@@ -101,7 +101,7 @@ newgrowth <- ggplot(paired, aes(newgrowth)) +
 newgrowth
 
 newgrowthbuds <- ggplot(paired, aes(buds, newgrowth)) +
-  geom_point() +
+  geom_point() + geom_smooth() +
   labs(x = "New Growth Branches")
 newgrowthbuds
 
@@ -112,7 +112,7 @@ branches <- ggplot(paired, aes(branches)) +
 branches
 
 branchesbuds <- ggplot(paired, aes(buds, branches)) +
-  geom_point() +
+  geom_point() + geom_smooth()
   labs(x = "Reproductive Output", y = "Total Branches")
 branchesbuds
 
@@ -128,28 +128,29 @@ head(paired)
 
 #volume
 volumebuds <- ggplot(paired, aes(budsperbranch, volume)) +
-  geom_point() +
+  geom_point() + geom_smooth()
   labs(x = "Reproductive Output", y = "Total Volume")
 volumebuds
 
 #new growth
 newgrowthbuds <- ggplot(paired, aes(budsperbranch, newgrowth)) +
-  geom_point() +
+  geom_point() + geom_smooth()
   labs(x = "New Growth Branches")
 newgrowthbuds
 
 #branches
 branchesbuds <- ggplot(paired, aes(budsperbranch, branches)) +
-  geom_point() +
+  geom_point() + geom_smooth()
   labs(x = "Reproductive Output", y = "Total Branches")
 branchesbuds
 
 ```
 Even with accounting for buds/branch, the scatterplots of any size metric and buds as a reproductive output are funnel shaped. All this means is that future statistical models need to be built for a Poisson distribution.
+
 ####Distributions of reproductive outputs
 ```{r, repro output viz, warning=FALSE}
 ggplot(paired, aes(x=buds)) + geom_density()
-ggplot(paired, aes(x=fruits)) +geom_density()
+ggplot(paired, aes(x=fruits)) + geom_density()
 ```
 
 

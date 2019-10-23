@@ -53,6 +53,29 @@ allomap
 ```
 
 ###Size
+
+####Visuals of metrics
+```{r, means, warning=FALSE}
+barnew <- ggplot(paired, aes(x=transect, y=newgrowth)) +
+  geom_bar(stat="identity") 
+barnew
+
+barvol <- ggplot(paired, aes(x=transect, y=volume)) +
+  geom_bar(stat="identity") 
+barvol
+
+barbra <- ggplot(paired, aes(x=transect, y=branches)) +
+  geom_bar(stat="identity") 
+barbra
+
+barbud <- ggplot(paired, aes(x=transect, y=buds)) +
+  geom_bar(stat="identity") 
+barbud
+
+
+```
+
+
 ####Absolute Size
 Here we examine different metrics for total size of a cactus against the reproductive output for each cactus (as represented by total number of floral buds).
 ```{r, size, warning=FALSE}
@@ -149,13 +172,19 @@ summary(m3)
 m4 <- glm(buds~newgrowth + volume + branches, data=paired, family="poisson")
 summary(m4)
 
-m5 <- glm(buds~newgrowth + volume + branches, data=paired, family="poisson")
+#posthoc of model that includes all factors
+anova(m4, test="Chisq")
+
+m5 <- glm(buds~newgrowth * volume * branches, data=paired, family="poisson")
 summary(m5)
+
+#posthoc of model with all factors interactors 
+anova(m5, test="Chisq")
 
 #Let's have volume (and then again number of branches) be considered as random factors, and try some GLMMs. 
 
 m6 <- glmer(buds~newgrowth + (1|volume) + (1|branches), data=paired, family="poisson")
-anova(m6)
+anova(m6, test="Chisq")
 ```
 
 ###Relationships between reproductive structures

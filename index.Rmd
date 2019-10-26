@@ -1,5 +1,5 @@
 ---
-title: "Botany of Cactus Allocation"
+title: "Extra"
 author: "Malory Owen & Christopher Lortie"
 date: "2019"
 output:
@@ -255,4 +255,3 @@ summary(m7)
 Binomial glm models gave errors, but if we can get them to work, we can also see the relationship between blooms and other metrics, as well as the presence/absence of Cactus Wren nests.
 
 Next steps: expand models to include seed weight, seed count, fruit size, and fruit abundance. Identify what the middle/end to this story exactly is. 
-

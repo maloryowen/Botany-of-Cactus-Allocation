@@ -17,8 +17,8 @@ library(ggplot2)
 library(ggmap)
 library(dplyr)
 library(lmerTest)
-library(caret)
 library(ggpubr)
+library(car)
 
 register_google(key='')
 ```
@@ -59,27 +59,80 @@ allomap
 ####Visuals of metrics
 ```{r, means, warning=FALSE}
 barnew <- ggplot(paired, aes(x=transect, y=newgrowth)) +
-  geom_bar(stat="identity") + theme_minimal()
+  geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
 
 barvol <- ggplot(paired, aes(x=transect, y=volume)) +
-  geom_bar(stat="identity") + theme_minimal()
+  geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
 
 barbra <- ggplot(paired, aes(x=transect, y=branches)) +
-  geom_bar(stat="identity") + theme_minimal()
+  geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
 
 barbud <- ggplot(paired, aes(x=transect, y=buds)) +
-  geom_bar(stat="identity") + theme_minimal()
+  geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
 
 barfru <- ggplot(paired, aes(x=transect, y=fruits)) +
-  geom_bar(stat='identity') + theme_minimal()
+  geom_bar(stat='identity') + theme_classic() + theme(text = element_text(size=12))
 
 bars <- ggarrange(barvol, barnew, barbra, barbud, barfru, ncol = 3, nrow = 2)
 bars
 
 ```
 
+####Distributions of and relationships between reproductive outputs
+```{r, repro output viz, warning=FALSE}
+buds <- ggplot(paired, aes(x=buds)) + geom_density()
+fruits <- ggplot(paired, aes(x=fruits)) + geom_density() + theme(text = element_text(size=12))
 
-####Absolute Size
+reprodensities <- ggarrange(buds, fruits, ncol = 2, nrow = 1)
+reprodensities
+
+#Buds and fruits
+bf <- ggplot(paired, aes(x=buds, y=fruits)) +
+  geom_smooth(model = "glm", formula=y~x) + theme_classic() + theme(text = element_text(size=12))
+bf
+```
+
+####Distributions of and relationships between physical outputs
+```{r, phys output viz, warning=FALSE}
+#volume
+volume <- ggplot(paired, aes(volume)) +
+  geom_density() +
+  labs(x = "Total Volume") + theme_classic() + theme(text = element_text(size=12))
+
+#new growth
+newgrowth <- ggplot(paired, aes(newgrowth)) +
+  geom_density() +
+  labs(x = "New Growth Branches") + theme_classic() + theme(text = element_text(size=12))
+
+#branches
+branches <- ggplot(paired, aes(branches)) +
+  geom_density() + 
+  labs(x = "Total Branches") + theme_classic() + theme(text = element_text(size=12))
+
+physdensities <- ggarrange(volume, newgrowth, branches, ncol = 2, nrow = 2)
+physdensities
+
+#Volume and New growth
+vn <- ggplot(paired, aes(x=volume, y=newgrowth)) +
+  geom_smooth(model = "glm", formula=y~x) + theme_classic() + theme(text = element_text(size=12))
+
+
+#Volume and Branches
+vb <- ggplot(paired, aes(x=volume, y=branches)) +
+  geom_smooth(model = "glm", formula=y~x) + theme_classic() + theme(text = element_text(size=12))
+
+
+#Branches and New growth
+bn <- ggplot(paired, aes(x=branches, y=newgrowth)) +
+  geom_smooth(model = "glm", formula=y~x) + theme_classic() + theme(text = element_text(size=12))
+
+prefactors <- ggarrange(vn, vb, bn, ncol = 2, nrow = 2)
+prefactors
+
+```
+
+
+####Absolute Size as Predictor Variables
 Here we examine different metrics for total size of a cactus against the reproductive output for each cactus (as represented by total number of floral buds).
 
 ```{r, datamanipu, include=FALSE}
@@ -97,49 +150,35 @@ pairedsc <- pivot_longer(paired, col = c("logvol", "lognew", "logbra"), names_to
 #three metrics: volume, new growth, branches
 
 size_scatter <- ggplot(pairedsc, aes(x = metric.value, y = buds)) +
-  geom_point() + labs(x = "Metric", y = "Reproductive Output") + facet_grid(.~metric) + theme_minimal()
+  geom_point() + labs(x = "Metric", y = "Reproductive Output") + facet_grid(.~metric) + theme_classic() + geom_smooth(method="glm", formula=y~x)  + theme(text = element_text(size=12))
 size_scatter
 
 #volume
-volume <- ggplot(paired, aes(volume)) +
-  geom_density() +
-  labs(x = "Total Volume") + theme_minimal()
-
 volumebuds <- ggplot(paired, aes(volume, buds)) +
   geom_point() + geom_smooth(method="glm", formula=y~x) +
-  labs(x = "Total Volume", y = "Reproductive Output") + theme_minimal() 
+  labs(x = "Total Volume", y = "Reproductive Output") + theme_classic() + theme(text = element_text(size=12))
 
-
-#new growth
-newgrowth <- ggplot(paired, aes(newgrowth)) +
-  geom_density() +
-  labs(x = "New Growth Branches") + theme_minimal()
-
+#newgrowth
 newgrowthbuds <- ggplot(paired, aes(newgrowth, buds)) +
   geom_point() + geom_smooth(method="glm", formula=y~x) +
-  labs(x = "New Growth Branches", y = "Reproductive Output") + theme_minimal()
+  labs(x = "New Growth Branches", y = "Reproductive Output") + theme_classic() + theme(text = element_text(size=12))
 
 
 #branches
-branches <- ggplot(paired, aes(branches)) +
-  geom_density() + 
-  labs(x = "Total Branches") + theme_minimal()
-
 branchesbuds <- ggplot(paired, aes(branches, buds)) +
   geom_point() + geom_smooth(method="glm", formula=y~x) +
-  labs(x = "Total Branches", y = "Reproductive Output") + theme_minimal()
+  labs(x = "Total Branches", y = "Reproductive Output") + theme_classic() + theme(text = element_text(size=12))
 
 
 sizebuds <- ggarrange(volumebuds, newgrowthbuds, branchesbuds, ncol = 2, nrow = 2)
 sizebuds
 
-densities <- ggarrange(volume, newgrowth, branches, ncol = 2, nrow = 2)
-densities
+
 
 ```
 There is a large skew for smaller plants in our sampling resulting in a Poisson Distribution, which makes it difficult to know if there is actually a trade off in allocation happening.  
 
-####Per Capita Size
+####Per Capita Size as Predictor Variables
 Because it stands that larger plants have more branches, and therefore, more apical nodes from which buds can grow, we should investigate buds-per-branch as a standardized metric for reproductive output.
 ```{r, per capita, warning=FALSE}
 #add buds per branch column
@@ -147,19 +186,19 @@ paired <- mutate(paired, budsperbranch = buds/branches)
 head(paired)
 
 #volume
-volumebudsper <- ggplot(paired, aes(volume, budsperbranch)) +
+volumebudsper <- ggplot(paired, aes(budsperbranch, volume)) +
   geom_point() + geom_smooth(method="glm", formula=y~x)
-  labs(x = "Total Volume", y = "Reproductive Output per Branch") + theme_minimal()
+  labs(x = "Total Volume", y = "Reproductive Output per Branch") + theme_classic() + theme(text = element_text(size=12))
 
 #new growth
 newgrowthbudsper <- ggplot(paired, aes(budsperbranch, newgrowth)) +
   geom_point() + geom_smooth(method="glm", formula=y~x)
-  labs(x = "New Growth Branches", y = "Reproductive Output per Branch") + theme_minimal()
+  labs(x = "New Growth Branches", y = "Reproductive Output per Branch") + theme_classic() + theme(text = element_text(size=12))
 
 #branches
 branchesbudsper <- ggplot(paired, aes(budsperbranch, branches)) +
   geom_point() + geom_smooth(method="glm", formula=y~x)
-  labs(x = "Total Branches", y = "Reproductive Output per Branch") + theme_minimal()
+  labs(x = "Total Branches", y = "Reproductive Output per Branch") + theme_classic() + theme(text = element_text(size=12))
 
 sizebudsper <- ggarrange(volumebudsper, newgrowthbudsper, branchesbudsper, ncol = 2, nrow = 2)
 sizebudsper
@@ -169,29 +208,11 @@ sizebudsper
 Even with accounting for buds/branch, the scatterplots of any size metric and buds as a reproductive output are funnel shaped. All this means is that future statistical models need to be built for a Poisson distribution.
 
 
-```{r}
-
-```
-
-
-####Distributions of and relationships between reproductive outputs
-```{r, repro output viz, warning=FALSE}
-buds <- ggplot(paired, aes(x=buds)) + geom_density()
-fruits <- ggplot(paired, aes(x=fruits)) + geom_density()
-
-repro <- ggarrange(buds, fruits, ncol = 2, nrow = 1)
-repro
-
-#Buds and fruits
-bf <- ggplot(paired, aes(x=buds, y=fruits)) +
-  geom_smooth(model = "glm", formula=y~x) + theme_minimal()
-bf
-```
 
 
 ##Models
-###Allocation between physical and reproductive structures
-```{r, allocation models, warning=FALSE}
+###Test for multicolinearity and correlation between physical structure factors
+```{r, VIF and cor, warning=FALSE}
 #Test for correlation between factors
 vncor <- cor.test(paired$volume, paired$newgrowth, method="pearson")
 vncor #correlated
@@ -201,26 +222,53 @@ nbcor <- cor.test(paired$newgrowth, paired$branches, method="pearson")
 nbcor #correlated
 #All predictors are correlated, so I believe we don't want interacting models. 
 
+
+#Correlation between reproductive output responses?
+#buds and fruits
+bfcor <- cor.test(paired$buds, paired$fruits, method="pearson")
+bfcor #correlated
+#blooms and fruits
+bbcor <- cor.test(paired$blooms, paired$fruits, method="pearson")
+bbcor #correlated
+
+#Variance Inflation Factors
+#For predictors as factors
+vif(glm(buds~newgrowth + volume + branches, data=paired, family="quasipoisson"))
+#doesn't look like it's a problem when they are just included in the model. w
+#we can tell when a factor is a problem when it's VIF is much highest than the rest. 
+
+#For predictors as interacting factors
+vif(glm(buds~newgrowth * volume * branches, data=paired, family="quasipoisson"))
+#some interactions are much too high, this model is not appropriate
+
+
+```
+
+
+###Allocation between physical and reproductive structures
+```{r, allocation models, warning=FALSE}
+
+
 #Volume as a predictor for repro output
-m1 <- glm(buds~volume, data=paired, family="poisson")
+m1 <- glm(buds~volume, data=paired, family="quasipoisson")
 summary(m1)
 
 #New growth as predictor for repro output
-m2 <- glm(buds~newgrowth, data=paired, family="poisson")
+m2 <- glm(buds~newgrowth, data=paired, family="quasipoisson")
 summary(m2)
 
 #Number of branches as predictor for repro output
-m3 <- glm(buds~branches, data=paired, family="poisson")
+m3 <- glm(buds~branches, data=paired, family="quasipoisson")
 summary(m3)
 
 #All are significant, so let's include all in one model
-m4 <- glm(buds~newgrowth + volume + branches, data=paired, family="poisson")
+m4 <- glm(buds~newgrowth + volume + branches, data=paired, family="quasipoisson")
 summary(m4)
 
 #posthoc of model that includes all factors
 anova(m4, test="Chisq")
 
-m5 <- glm(buds~newgrowth * volume * branches, data=paired, family="poisson")
+m5 <- glm(buds~newgrowth * volume * branches, data=paired, family="quasipoisson")
 summary(m5)
 
 #posthoc of model with all factors interactors 
@@ -229,6 +277,7 @@ anova(m5, test="Chisq")
 #Let's have volume (and then again number of branches) be considered as random factors, and try some GLMMs. 
 
 m6 <- glmer(buds~newgrowth + (1|volume) + (1|branches), data=paired, family="poisson")
+summary(m6)
 anova(m6, test="Chisq")
 ```
 
@@ -239,13 +288,8 @@ We have several different metrics for reproductive structure. As of now, availab
 ```{r, reproductive models, error=FALSE, warning=FALSE}
 
 
-bfcor <- cor.test(paired$buds, paired$fruits, method="pearson")
-bfcor #correlated
-bbcor <- cor.test(paired$blooms, paired$fruits, method="pearson")
-bbcor #correlated
 
-
-m7<- glm(buds~fruits, data=paired, family="poisson")
+m7<- glm(buds~fruits, data=paired, family="quasipoisson")
 summary(m7)
 
 

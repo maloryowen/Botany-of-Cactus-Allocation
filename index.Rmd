@@ -1,5 +1,5 @@
 ---
-title: "Extra"
+title: "Physical and Reproductive Allocation in *Cylindropuntia acanthocarpa*"
 author: "Malory Owen & Christopher Lortie"
 date: "2019"
 output:
@@ -8,7 +8,24 @@ output:
     toc_float: true
 
 ---
+#Introduction
+Plants make trade offs, just like any organism. We know that many plants make allocational trade offs between the growth of physical, defensive, and reproductive structures, putting more energy or nutrients towards one or two of these groups of structures. For pollinators and seed dispersers, size and showiness influence visitation; that is, larger plants or plants with more flowers/fruits are more likely to attract flying pollinators. To this end, we are interested in investigating what trade offs are made in a apidae-pollinated cactus, *Cylindropuntia acanthocarpa*. We hypothesize that physical and reproductive structures will have a negative relationship at median levels of structural output, but will plateau as cacti reach their maximum size. 
 
+Metrics of physical output (predictor variables) are: 
+
+  1.  Volume
+  2.  Total branches
+  3.  New growth branches
+
+Metrics of reproductive output (response variables) are:
+
+  1.  Flower buds per cactus
+  2.  Fruits per cactus
+  3.  Blooming flowers on June 8th, 2019
+  4.  Fruit weight
+  5.  Fruit volume
+  6.  Seed weight (being collected now)
+  7.  Seeds per fruit/cactus (being collected now)
 
 ```{r, setup, include=FALSE}
 #Bring in libraries
@@ -20,11 +37,11 @@ library(lmerTest)
 library(ggpubr)
 library(car)
 
-register_google(key='')
+register_google(key='AIzaSyC3izk0qKmEBZf5hx0tVUwx-bqxi8TVY5Q')
 ```
 
-##Dataset
-```{r, datasets}
+#Dataset
+```{r, datasets, warning=FALSE, echo=FALSE}
 #Bring in datasets of interest
 paired <- read.csv('~/Masters/Botany-of-Cactus-Allocation/data/paired_flower_fruit.csv')
 head(paired)
@@ -35,12 +52,17 @@ head(fruit_metrics)
 seed_metrics <- read.csv("~/Masters/Botany-of-Cactus-Allocation/data/seed_metrics.csv")
 head(seed_metrics)
 
-
+#master sheet creation/beautifying
+master <- left_join(paired, fruit_metrics, by="tag")
+master$cactus.id.y <- NULL 
+master$X <- NULL
+master <- mutate(master, fruit.volume=fruit.x*fruit.y*fruit.z)
+head(master)
 ```
 
-##Viz
-###Maps
-```{r, viz, warning=FALSE}
+#Viz
+##Maps
+```{r, viz, warning=FALSE, echo=FALSE}
 #map
 cali <- get_map(location = c(lon = -115.662, lat = 34.7812), zoom = 19)
 map <- ggmap(cali) #basemap
@@ -54,46 +76,70 @@ allomap
 
 ```
 
-###Size
-
-####Visuals of metrics
-```{r, means, warning=FALSE}
-barnew <- ggplot(paired, aes(x=transect, y=newgrowth)) +
+##Histograms of variables
+```{r, means, warning=FALSE, echo=FALSE}
+histnew <- ggplot(paired, aes(x=transect, y=newgrowth)) +
   geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
 
-barvol <- ggplot(paired, aes(x=transect, y=volume)) +
+histvol <- ggplot(paired, aes(x=transect, y=volume)) +
   geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
 
-barbra <- ggplot(paired, aes(x=transect, y=branches)) +
+histbra <- ggplot(paired, aes(x=transect, y=branches)) +
   geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
 
-barbud <- ggplot(paired, aes(x=transect, y=buds)) +
+histbud <- ggplot(paired, aes(x=transect, y=buds)) +
   geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
 
-barfru <- ggplot(paired, aes(x=transect, y=fruits)) +
+histfru <- ggplot(paired, aes(x=transect, y=fruits)) +
   geom_bar(stat='identity') + theme_classic() + theme(text = element_text(size=12))
 
-bars <- ggarrange(barvol, barnew, barbra, barbud, barfru, ncol = 3, nrow = 2)
-bars
+histfruw <- ggplot(master, aes(x=tag, y=fruit.weight)) +
+  geom_bar(stat='identity') + theme_classic() + theme(text = element_text(size=12))
+
+histfruv <- ggplot(master, aes(x=tag, y=fruit.volume)) +
+  geom_bar(stat='identity') + theme_classic() + theme(text = element_text(size=12))
+
+histograms <- ggarrange(histvol, histnew, histbra, histbud, histfru, histfruw, histfruv, ncol = 2, nrow = 4)
+histograms
 
 ```
 
-####Distributions of and relationships between reproductive outputs
-```{r, repro output viz, warning=FALSE}
-buds <- ggplot(paired, aes(x=buds)) + geom_density()
-fruits <- ggplot(paired, aes(x=fruits)) + geom_density() + theme(text = element_text(size=12))
+##Distributions of and relationships between reproductive outputs
+```{r, repro output viz, warning=FALSE, echo=FALSE}
+buds <- ggplot(paired, aes(x=buds)) + geom_density() + theme(text = element_text(size=12)) + theme_classic()
+fruits <- ggplot(paired, aes(x=fruits)) + geom_density() + theme(text = element_text(size=12)) + theme_classic()
+fruitweights <- ggplot(master, aes(x=fruit.weight)) + geom_density() + theme(text = element_text(size=12)) + theme_classic()
+fruitvolumes <- ggplot(master, aes(x=fruit.volume)) + geom_density() + theme(text = element_text(size=12)) + theme_classic()
 
-reprodensities <- ggarrange(buds, fruits, ncol = 2, nrow = 1)
+reprodensities <- ggarrange(buds, fruits, fruitweights, fruitvolumes, ncol = 2, nrow = 2)
 reprodensities
 
 #Buds and fruits
-bf <- ggplot(paired, aes(x=buds, y=fruits)) +
+bf <- ggplot(paired, aes(x=buds, y=fruits)) + geom_point() +
   geom_smooth(model = "glm", formula=y~x) + theme_classic() + theme(text = element_text(size=12))
-bf
+
+#Buds and fruit weight
+bfw <- ggplot(master, aes(x=buds, y=fruit.weight)) + geom_point() + geom_smooth(model="glm", fomula=y~x) + theme_classic() + theme(text = element_text(size=12))
+
+#Buds and fruit volume
+bfv <- ggplot(master, aes(x=buds, y=fruit.volume)) + geom_point() + geom_smooth(model="glm", fomula=y~x) + theme_classic() + theme(text = element_text(size=12))
+
+#Fruits and fruit weight
+ffw <- ggplot(master, aes(x=fruits, y=fruit.weight)) + geom_point() + geom_smooth(model="glm", fomula=y~x) + theme_classic() + theme(text = element_text(size=12))
+
+#Fruits and fruit volume
+ffv <- ggplot(master, aes(x=fruits, y=fruit.volume)) + geom_point() + geom_smooth(model="glm", fomula=y~x) + theme_classic() + theme(text = element_text(size=12))
+
+#Fruit volume and fruit weight
+fvfw <- ggplot(master, aes(x=fruit.volume, y=fruit.weight)) + geom_point() + geom_smooth(model="glm", fomula=y~x) + theme_classic() + theme(text = element_text(size=12))
+
+reproscatters <- ggarrange(bf, bfw, bfv, ffw, ffv, fvfw, ncol = 3, nrow = 2)
+reproscatters
+
 ```
 
-####Distributions of and relationships between physical outputs
-```{r, phys output viz, warning=FALSE}
+##Distributions of and relationships between physical outputs
+```{r, phys output viz, warning=FALSE, echo=FALSE}
 #volume
 volume <- ggplot(paired, aes(volume)) +
   geom_density() +
@@ -113,29 +159,27 @@ physdensities <- ggarrange(volume, newgrowth, branches, ncol = 2, nrow = 2)
 physdensities
 
 #Volume and New growth
-vn <- ggplot(paired, aes(x=volume, y=newgrowth)) +
+vn <- ggplot(paired, aes(x=volume, y=newgrowth)) + geom_point() +
   geom_smooth(model = "glm", formula=y~x) + theme_classic() + theme(text = element_text(size=12))
 
 
 #Volume and Branches
-vb <- ggplot(paired, aes(x=volume, y=branches)) +
+vb <- ggplot(paired, aes(x=volume, y=branches)) + geom_point() +
   geom_smooth(model = "glm", formula=y~x) + theme_classic() + theme(text = element_text(size=12))
 
 
 #Branches and New growth
-bn <- ggplot(paired, aes(x=branches, y=newgrowth)) +
+bn <- ggplot(paired, aes(x=branches, y=newgrowth)) + geom_point() +
   geom_smooth(model = "glm", formula=y~x) + theme_classic() + theme(text = element_text(size=12))
 
-prefactors <- ggarrange(vn, vb, bn, ncol = 2, nrow = 2)
-prefactors
+sizescatters <- ggarrange(vn, vb, bn, ncol = 2, nrow = 2)
+sizescatters
 
 ```
 
 
-####Absolute Size as Predictor Variables
 Here we examine different metrics for total size of a cactus against the reproductive output for each cactus (as represented by total number of floral buds).
-
-```{r, datamanipu, include=FALSE}
+```{r, datamanipu, warning=FALSE, include=FALSE, echo=FALSE}
 #Get log of volume 
 paired <- mutate(paired, logvol=(log(volume))) 
 paired <- mutate(paired, logbra=(log(branches)))
@@ -145,13 +189,14 @@ pairedsc <- pivot_longer(paired, col = c("logvol", "lognew", "logbra"), names_to
 
 ```
 
-```{r, size, warning=FALSE}
+##Size versus reproductive output: Buds
+```{r, size and buds, warning=FALSE, echo=FALSE}
 #size
 #three metrics: volume, new growth, branches
 
-size_scatter <- ggplot(pairedsc, aes(x = metric.value, y = buds)) +
+sizerepro_scatter <- ggplot(pairedsc, aes(x = metric.value, y = buds)) +
   geom_point() + labs(x = "Metric", y = "Reproductive Output") + facet_grid(.~metric) + theme_classic() + geom_smooth(method="glm", formula=y~x)  + theme(text = element_text(size=12))
-size_scatter
+sizerepro_scatter
 
 #volume
 volumebuds <- ggplot(paired, aes(volume, buds)) +
@@ -163,7 +208,6 @@ newgrowthbuds <- ggplot(paired, aes(newgrowth, buds)) +
   geom_point() + geom_smooth(method="glm", formula=y~x) +
   labs(x = "New Growth Branches", y = "Reproductive Output") + theme_classic() + theme(text = element_text(size=12))
 
-
 #branches
 branchesbuds <- ggplot(paired, aes(branches, buds)) +
   geom_point() + geom_smooth(method="glm", formula=y~x) +
@@ -173,14 +217,84 @@ branchesbuds <- ggplot(paired, aes(branches, buds)) +
 sizebuds <- ggarrange(volumebuds, newgrowthbuds, branchesbuds, ncol = 2, nrow = 2)
 sizebuds
 
-
-
 ```
 There is a large skew for smaller plants in our sampling resulting in a Poisson Distribution, which makes it difficult to know if there is actually a trade off in allocation happening.  
 
-####Per Capita Size as Predictor Variables
+##Size versus reproduction: Fruits
+```{r, size and fruits, warning=FALSE, echo=FALSE}
+#volume
+volumefruits <- ggplot(master, aes(volume, fruits)) +
+  geom_point() + geom_smooth(method="glm", formula=y~x) +
+  labs(x = "Total Volume", y = "Reproductive Output: Fruits") + theme_classic() + theme(text = element_text(size=12))
+
+#newgrowth
+newgrowthfruits <- ggplot(master, aes(newgrowth, fruits)) +
+  geom_point() + geom_smooth(method="glm", formula=y~x) +
+  labs(x = "New Growth Branches", y = "Reproductive Output: Fruits") + theme_classic() + theme(text = element_text(size=12))
+
+#branches
+branchesfruits <- ggplot(master, aes(branches, fruits)) +
+  geom_point() + geom_smooth(method="glm", formula=y~x) +
+  labs(x = "Total Branches", y = "Reproductive Output: Fruits") + theme_classic() + theme(text = element_text(size=12))
+
+
+sizefruits <- ggarrange(volumefruits, newgrowthfruits, branchesfruits, ncol = 2, nrow = 2)
+sizefruits
+
+```
+
+##Size versus reproduction: Fruit weight
+```{r, size and fruit weight, warning=FALSE, echo=FALSE}
+#volume
+volumefruitweight <- ggplot(master, aes(volume, fruit.weight)) +
+  geom_point() + geom_smooth(method="glm", formula=y~x) +
+  labs(x = "Total Volume", y = "Reproductive Output: Fruit Weight") + theme_classic() + theme(text = element_text(size=12))
+
+#newgrowth
+newgrowthfruitweight <- ggplot(master, aes(newgrowth, fruit.weight)) +
+  geom_point() + geom_smooth(method="glm", formula=y~x) +
+  labs(x = "New Growth Branches", y = "Reproductive Output: Fruit Weight") + theme_classic() + theme(text = element_text(size=12))
+
+#branches
+branchesfruitweight <- ggplot(master, aes(branches, fruit.weight)) +
+  geom_point() + geom_smooth(method="glm", formula=y~x) +
+  labs(x = "Total Branches", y = "Reproductive Output: Fruit Weight") + theme_classic() + theme(text = element_text(size=12))
+
+
+sizefruitweight <- ggarrange(volumefruitweight, newgrowthfruitweight, branchesfruitweight, ncol = 2, nrow = 2)
+sizefruitweight
+
+```
+
+
+##Size versus reproduction: Fruit volume
+```{r, size and fruit volume, warning=FALSE, echo=FALSE}
+#volume
+volumefruitvolume <- ggplot(master, aes(volume, fruit.volume)) +
+  geom_point() + geom_smooth(method="glm", formula=y~x) +
+  labs(x = "Total Volume", y = "Reproductive Output: Fruit Volume") + theme_classic() + theme(text = element_text(size=12))
+
+#newgrowth
+newgrowthfruitvolume <- ggplot(master, aes(newgrowth, fruit.volume)) +
+  geom_point() + geom_smooth(method="glm", formula=y~x) +
+  labs(x = "New Growth Branches", y = "Reproductive Output: Fruit Volume") + theme_classic() + theme(text = element_text(size=12))
+
+#branches
+branchesfruitvolume <- ggplot(master, aes(branches, fruit.volume)) +
+  geom_point() + geom_smooth(method="glm", formula=y~x) +
+  labs(x = "Total Branches", y = "Reproductive Output: Fruit Volume") + theme_classic() + theme(text = element_text(size=12))
+
+
+sizefruitvolume <- ggarrange(volumefruitvolume, newgrowthfruitvolume, branchesfruitvolume, ncol = 2, nrow = 2)
+sizefruitvolume
+
+```
+
+
+
+##Per Capita Size as Predictor Variables
 Because it stands that larger plants have more branches, and therefore, more apical nodes from which buds can grow, we should investigate buds-per-branch as a standardized metric for reproductive output.
-```{r, per capita, warning=FALSE}
+```{r, per capita, warning=FALSE, echo=FALSE}
 #add buds per branch column
 paired <- mutate(paired, budsperbranch = buds/branches)
 head(paired)
@@ -205,72 +319,122 @@ sizebudsper
 
 
 ```
-Even with accounting for buds/branch, the scatterplots of any size metric and buds as a reproductive output are funnel shaped. All this means is that future statistical models need to be built for a Poisson distribution.
+Even with accounting for buds/branch, the scatter plots of any size metric and buds as a reproductive output are funnel shaped. All this means is that future statistical models need to be built for a Poisson distribution.
 
 
 
 
-##Models
-###Test for multicolinearity and correlation between physical structure factors
+#Models
+##Test for multicolinearity and correlation between physical structure factors
 ```{r, VIF and cor, warning=FALSE}
-#Test for correlation between factors
+#Correlation between sizes
+#volume and new growth
 vncor <- cor.test(paired$volume, paired$newgrowth, method="pearson")
-vncor #correlated
+vncor #positively correlated
+#volume and branches
 vbcor <- cor.test(paired$volume, paired$branches, method="pearson")
-vbcor #correlated
+vbcor # positively correlated
+#new growth and branches
 nbcor <- cor.test(paired$newgrowth, paired$branches, method="pearson")
-nbcor #correlated
+nbcor #positively correlated
 #All predictors are correlated, so I believe we don't want interacting models. 
 
 
 #Correlation between reproductive output responses?
 #buds and fruits
 bfcor <- cor.test(paired$buds, paired$fruits, method="pearson")
-bfcor #correlated
+bfcor #positively correlated
 #blooms and fruits
 bbcor <- cor.test(paired$blooms, paired$fruits, method="pearson")
-bbcor #correlated
+bbcor #positively correlated
+#buds and fruit weight
+bfw <- cor.test(master$buds, master$fruit.weight, method="pearson")
+bfw #not correlated
+#buds and fruit volume
+bfv <- cor.test(master$buds, master$fruit.volume, method="pearson")
+bfv #not correlated
+#fruit number and fruit weight
+ffw <- cor.test(master$fruits, master$fruit.weight, method="pearson")
+ffw #not correlated
+#fruit number and fruit volume
+ffv <- cor.test(master$fruits, master$fruit.volume, method="pearson")
+ffv #not correlated
+#fruit weight and fruit volume
+fwfv <- cor.test(master$fruit.weight, master$fruit.volume, method="pearson")
+fwfv #positively correlated
+
+#Correlation between 
 
 #Variance Inflation Factors
-#For predictors as factors
+#We can tell when a factor is a problem in a model when it's VIF is much higher than the rest of the VIFs
+
+#buds and size additive
 vif(glm(buds~newgrowth + volume + branches, data=paired, family="quasipoisson"))
-#doesn't look like it's a problem when they are just included in the model. w
-#we can tell when a factor is a problem when it's VIF is much highest than the rest. 
+#ok
 
-#For predictors as interacting factors
+#buds and size interactions
 vif(glm(buds~newgrowth * volume * branches, data=paired, family="quasipoisson"))
-#some interactions are much too high, this model is not appropriate
+#not ok 
 
+#fruit weight and size additive
+vif(glm(fruit.weight ~ newgrowth + volume + branches, data=master, family="quasipoisson"))
+#ok
+
+#fruit weight and size interactions
+vif(glm(fruit.weight ~ newgrowth * volume * branches, data=master, family="quasipoisson"))
+#not ok
+
+#fruit volume and size additive
+vif(glm(fruit.volume~newgrowth + volume + branches, data=master, family="quasipoisson"))
+#ok
+
+#fruit volume and size interactions
+vif(glm(fruit.volume~newgrowth * volume * branches, data=master, family="quasipoisson"))
+#not ok
+
+#fruits and fruit weight/volume additive
+vif(glm(fruits~fruit.weight + fruit.volume, data=master, family="quasipoisson"))
+#ok
+
+#fruits and fruit weight/volume interactions
+vif(glm(fruits~fruit.weight * fruit.volume, data=master, family="quasipoisson"))
+#maybe ok...maybe not ok.
+
+#buds and fruit additive
+vif(glm(buds~fruits + fruit.weight + fruit.volume, data=master, family="quasipoisson"))
+#ok
+
+#buds and fruit interactions
+vif(glm(buds~fruits * fruit.weight * fruit.volume, data=master, family="quasipoisson"))
+#not ok
+
+#generally, the interactive models have too many high and low VIFS
 
 ```
 
 
-###Allocation between physical and reproductive structures
-```{r, allocation models, warning=FALSE}
-
-
+##Allocation between physical and reproductive structures: Buds
+```{r, bud allocation models, warning=FALSE}
 #Volume as a predictor for repro output
 m1 <- glm(buds~volume, data=paired, family="quasipoisson")
-summary(m1)
+summary(m1) #significant
 
 #New growth as predictor for repro output
 m2 <- glm(buds~newgrowth, data=paired, family="quasipoisson")
-summary(m2)
+summary(m2) #significant
 
 #Number of branches as predictor for repro output
 m3 <- glm(buds~branches, data=paired, family="quasipoisson")
-summary(m3)
+summary(m3) #significant
 
 #All are significant, so let's include all in one model
 m4 <- glm(buds~newgrowth + volume + branches, data=paired, family="quasipoisson")
-summary(m4)
-
+summary(m4) #significant
 #posthoc of model that includes all factors
-anova(m4, test="Chisq")
+anova(m4, test="Chisq") #all factors important.
 
 m5 <- glm(buds~newgrowth * volume * branches, data=paired, family="quasipoisson")
-summary(m5)
-
+summary(m5) #branches and volume:branches are significant, but this is an inappropriate model due to high VIFS
 #posthoc of model with all factors interactors 
 anova(m5, test="Chisq")
 
@@ -278,24 +442,138 @@ anova(m5, test="Chisq")
 
 m6 <- glmer(buds~newgrowth + (1|volume) + (1|branches), data=paired, family="poisson")
 summary(m6)
-anova(m6, test="Chisq")
+#posthoc of model with volume and branches as random factors
+anova(m6, test="Chisq") #significant, but maybe not really a good model, biologically speaking. 
 ```
 
-###Relationships between reproductive structures
-We have several different metrics for reproductive structure. As of now, available metrics are: 1) number of buds, 2) blooming/not blooming as of June 8th, and 3) number of fruits. We are still collecting the data on 4) seed weight, 5) seed count, 6) fruit size, and 7) fruit weight. 
+##Allocation between physical and reproductive structures: Fruit
+```{r, fruit allocation models, warning=FALSE}
+#fruits
+#volume
+m27 <-glm(fruits~volume, data=master, family="quasipoisson")
+summary(m27) #not significant
 
-####Reproductive output counts
+#branches
+m28 <- glm(fruits~branches, data=master, family="quasipoisson")
+summary(m28) #not significant
+
+#new growth
+m29 <- glm(fruits~newgrowth, data=master, family="quasipoisson")
+summary(m29) #significant
+
+#additive
+m30 <- glm(fruits ~ newgrowth + volume + branches, data=master, family="quasipoisson")
+summary(m30) #only newgrowth is significant
+anova(m30, test="Chisq") #still, newgrowth is the only significant predictor
+
+#interactions
+m31 <- glm(fruits ~ newgrowth * volume * branches, data=master, family="quasipoisson")
+summary(m31) #no significance and VIFs recommend against this model
+
+
+
+```
+
+
+##Allocation between physical and reproductive structures: Fruit weight and Fruit Volume
+```{r, fruit weight and volume allocation models, warning=FALSE}
+#fruit weight 
+#volume
+m7 <-glm(fruit.weight~volume, data=master, family="quasipoisson")
+summary(m7) #not significant
+
+#branches
+m8 <- glm(fruit.weight~branches, data=master, family="quasipoisson")
+summary(m8) #not significant
+
+#new growth
+m9 <- glm(fruit.weight~newgrowth, data=master, family="quasipoisson")
+summary(m9) #significant
+
+#additive
+m10 <- glm(fruit.weight ~ newgrowth + volume + branches, data=master, family="quasipoisson")
+summary(m10) #only newgrowth is significant
+anova(m10, test="Chisq") #still, newgrowth is the only significant predictor
+
+#interactions
+m11 <- glm(fruit.weight ~ newgrowth * volume * branches, data=master, family="quasipoisson")
+summary(m11) #no significance and VIFs recommend against this model
+
+#fruit volume
+#volume
+m12 <-glm(fruit.volume~volume, data=master, family="quasipoisson")
+summary(m12) #not significant
+
+#branches
+m13 <- glm(fruit.volume~branches, data=master, family="quasipoisson")
+summary(m13) #not significant
+
+#new growth
+m14 <- glm(fruit.volume~newgrowth, data=master, family="quasipoisson")
+summary(m14) #significant
+
+#additive
+m15 <- glm(fruit.volume~newgrowth + volume + branches, data=master, family="quasipoisson")
+summary(m15) #newgrowth is significant
+anova(m15, test="Chisq") #but post-hoc says new growth AND volume are significant
+
+#interactions
+m16 <- glm(fruit.volume~newgrowth * volume * branches, data=master, family="quasipoisson")
+summary(m16) #not significant and VIFs not ok with model
+
+```
+
+
+##Relationships between reproductive structures
+We have several different metrics for reproductive structure. As of now, available metrics are: 1) number of buds, 2) blooming/not blooming as of June 8th, and 3) number of fruits, 4) fruit size, and 5) fruit weight. We are still collecting the data on 6) seed weight, 7) seed count.
+
 ```{r, reproductive models, error=FALSE, warning=FALSE}
+#buds and fruits
+m17<- glm(buds~fruits, data=paired, family="quasipoisson")
+summary(m17)
 
+#fruits and fruit volume
+m18 <- glm(fruits~fruit.volume, data=master, family="quasipoisson")
+summary(m18) #not significant
 
+#fruits and fruit weight
+m19 <- glm(fruits~fruit.weight, data=master, family="quasipoisson")
+summary(m19) #not significant
 
-m7<- glm(buds~fruits, data=paired, family="quasipoisson")
-summary(m7)
+#fruit volume and fruit weight
+m20 <- glm(fruit.volume~fruit.weight, data=master, family="quasipoisson")
+summary(m20) #significant
+anova(m20, test="Chisq")
 
+#additive fruit weight and fruit volume
+m21 <- glm(fruits~fruit.weight + fruit.volume, data=master, family="quasipoisson")
+summary(m21) #not significant
 
+#interactions between fruit weight and fruit volume
+m22 <- glm(fruits~fruit.weight * fruit.volume, data=master, family="quasipoisson")
+summary(m22) #fruit volume alone is significant here. 
+anova(m22, test="Chisq") #no significance in posthoc
+
+#fruit weight and buds
+m23 <- glm(fruit.weight~buds, data=master, family="quasipoisson")
+summary(m23) #not significant
+
+#fruit volume and buds
+m24 <- glm(fruit.volume~buds, data=master, family="quasipoisson")
+summary(m24) #not significant
+
+#fruit metrics and buds additive
+m25 <- glm(buds~fruits + fruit.weight + fruit.volume, data=master, family="quasipoisson")
+summary(m25) #fruits is only signficant factor
+anova(m25, test="Chisq") #same
+
+#fruit metrics and buds interactions
+m26 <- glm(buds~fruits * fruit.weight * fruit.volume, data=master, family="quasipoisson")
+summary(m26) #fruits:fruit.weight is the only factor not significant
+anova(m26, test="Chisq") #but here, only fruits, fruit.weight:fruit.volume, and fruits:fruit.weight:fruit.volume are significant. However, the VIFs for this model suggest it isn't a good model
 
 ```
 
 Binomial glm models gave errors, but if we can get them to work, we can also see the relationship between blooms and other metrics, as well as the presence/absence of Cactus Wren nests.
 
-Next steps: expand models to include seed weight, seed count, fruit size, and fruit abundance. Identify what the middle/end to this story exactly is. 
+Next steps: expand models to include seed weight and seed count. Identify what the middle/end to this story exactly is. 

@@ -6,8 +6,10 @@ output:
   html_document:
     toc: true
     toc_float: true
-
 ---
+![](photos/flower.jpg) 
+![](photos/fruit.jpg) 
+
 #Introduction
 Plants make trade offs, just like any organism. We know that many plants make allocational trade offs between the growth of physical, defensive, and reproductive structures, putting more energy or nutrients towards one or two of these groups of structures. For pollinators and seed dispersers, size and showiness influence visitation; that is, larger plants or plants with more flowers/fruits are more likely to attract flying pollinators. To this end, we are interested in investigating what trade offs are made in a apidae-pollinated cactus, *Cylindropuntia acanthocarpa*. We hypothesize that physical and reproductive structures will have a negative relationship at median levels of structural output, but will plateau as cacti reach their maximum size. 
 
@@ -323,11 +325,10 @@ Even with accounting for buds/branch, the scatter plots of any size metric and b
 
 
 
-
 #Models
-##Test for multicolinearity and correlation between physical structure factors
+##Test for correlation between levels within factors
 ```{r, VIF and cor, warning=FALSE}
-#Correlation between sizes
+#Correlation between physical outputs
 #volume and new growth
 vncor <- cor.test(paired$volume, paired$newgrowth, method="pearson")
 vncor #positively correlated
@@ -340,7 +341,7 @@ nbcor #positively correlated
 #All predictors are correlated, so I believe we don't want interacting models. 
 
 
-#Correlation between reproductive output responses?
+#Correlation between reproductive outputs
 #buds and fruits
 bfcor <- cor.test(paired$buds, paired$fruits, method="pearson")
 bfcor #positively correlated
@@ -348,25 +349,30 @@ bfcor #positively correlated
 bbcor <- cor.test(paired$blooms, paired$fruits, method="pearson")
 bbcor #positively correlated
 #buds and fruit weight
-bfw <- cor.test(master$buds, master$fruit.weight, method="pearson")
-bfw #not correlated
+bfwcor <- cor.test(master$buds, master$fruit.weight, method="pearson")
+bfwcor #not correlated
 #buds and fruit volume
-bfv <- cor.test(master$buds, master$fruit.volume, method="pearson")
-bfv #not correlated
+bfvcor <- cor.test(master$buds, master$fruit.volume, method="pearson")
+bfvcor #not correlated
 #fruit number and fruit weight
-ffw <- cor.test(master$fruits, master$fruit.weight, method="pearson")
-ffw #not correlated
+ffwcor <- cor.test(master$fruits, master$fruit.weight, method="pearson")
+ffwcor #not correlated
 #fruit number and fruit volume
-ffv <- cor.test(master$fruits, master$fruit.volume, method="pearson")
-ffv #not correlated
+ffvcor <- cor.test(master$fruits, master$fruit.volume, method="pearson")
+ffvcor #not correlated
 #fruit weight and fruit volume
-fwfv <- cor.test(master$fruit.weight, master$fruit.volume, method="pearson")
-fwfv #positively correlated
+fwfvcor <- cor.test(master$fruit.weight, master$fruit.volume, method="pearson")
+fwfvcor #positively correlated
 
-#Correlation between 
 
+
+```
+
+##Test for Multicolinearity using VIFs
+```{r, VIFS, warning=FALSE}
 #Variance Inflation Factors
-#We can tell when a factor is a problem in a model when it's VIF is much higher than the rest of the VIFs
+#We can tell when a factor is a problem in a model when it's VIF is much higher than the rest of the VIFs.
+#I've computed the VIFs for the levels in models that had multiple levels and significance.
 
 #buds and size additive
 vif(glm(buds~newgrowth + volume + branches, data=paired, family="quasipoisson"))

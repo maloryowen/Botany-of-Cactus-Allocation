@@ -7,8 +7,8 @@ output:
     toc: true
     toc_float: true
 ---
-![](photos/flower.jpg) 
-![](photos/fruit.jpg) 
+![](photos/flower.jpg)
+![](photos/fruit.jpg)
 
 #Introduction
 Plants make trade offs, just like any organism. We know that many plants make allocational trade offs between the growth of physical, defensive, and reproductive structures, putting more energy or nutrients towards one or two of these groups of structures. For pollinators and seed dispersers, size and showiness influence visitation; that is, larger plants or plants with more flowers/fruits are more likely to attract flying pollinators. To this end, we are interested in investigating what trade offs are made in a apidae-pollinated cactus, *Cylindropuntia acanthocarpa*. We hypothesize that physical and reproductive structures will have a negative relationship at median levels of structural output, but will plateau as cacti reach their maximum size. 
@@ -35,9 +35,11 @@ library(tidyr)
 library(ggplot2)
 library(ggmap)
 library(dplyr)
-library(lmerTest)
 library(ggpubr)
 library(car)
+library(MASS)
+library(msme)
+
 
 register_google(key='AIzaSyC3izk0qKmEBZf5hx0tVUwx-bqxi8TVY5Q')
 ```
@@ -52,7 +54,7 @@ fruit_metrics <- read.csv("~/Masters/Botany-of-Cactus-Allocation/data/fruit_metr
 head(fruit_metrics)
 
 seed_metrics <- read.csv("~/Masters/Botany-of-Cactus-Allocation/data/seed_metrics.csv")
-head(seed_metrics)
+
 
 #master sheet creation/beautifying
 master <- left_join(paired, fruit_metrics, by="tag")
@@ -80,26 +82,26 @@ allomap
 
 ##Histograms of variables
 ```{r, means, warning=FALSE, echo=FALSE}
-histnew <- ggplot(paired, aes(x=transect, y=newgrowth)) +
-  geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
+histnew <- ggplot(paired, aes(newgrowth)) +
+  geom_histogram() + theme_classic() + theme(text = element_text(size=12))
 
-histvol <- ggplot(paired, aes(x=transect, y=volume)) +
-  geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
+histvol <- ggplot(paired, aes(volume)) +
+  geom_histogram() + theme_classic() + theme(text = element_text(size=12))
 
-histbra <- ggplot(paired, aes(x=transect, y=branches)) +
-  geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
+histbra <- ggplot(paired, aes(branches)) +
+  geom_histogram() + theme_classic() + theme(text = element_text(size=12))
 
-histbud <- ggplot(paired, aes(x=transect, y=buds)) +
-  geom_bar(stat="identity") + theme_classic() + theme(text = element_text(size=12))
+histbud <- ggplot(paired, aes(buds)) +
+  geom_histogram() + theme_classic() + theme(text = element_text(size=12))
 
-histfru <- ggplot(paired, aes(x=transect, y=fruits)) +
-  geom_bar(stat='identity') + theme_classic() + theme(text = element_text(size=12))
+histfru <- ggplot(paired, aes(fruits)) +
+  geom_histogram() + theme_classic() + theme(text = element_text(size=12))
 
-histfruw <- ggplot(master, aes(x=tag, y=fruit.weight)) +
-  geom_bar(stat='identity') + theme_classic() + theme(text = element_text(size=12))
+histfruw <- ggplot(master, aes(fruit.weight)) +
+  geom_histogram() + theme_classic() + theme(text = element_text(size=12))
 
-histfruv <- ggplot(master, aes(x=tag, y=fruit.volume)) +
-  geom_bar(stat='identity') + theme_classic() + theme(text = element_text(size=12))
+histfruv <- ggplot(master, aes(fruit.volume)) +
+  geom_histogram() + theme_classic() + theme(text = element_text(size=12))
 
 histograms <- ggarrange(histvol, histnew, histbra, histbud, histfru, histfruw, histfruv, ncol = 2, nrow = 4)
 histograms
@@ -414,42 +416,173 @@ vif(glm(buds~fruits + fruit.weight + fruit.volume, data=master, family="quasipoi
 vif(glm(buds~fruits * fruit.weight * fruit.volume, data=master, family="quasipoisson"))
 #not ok
 
-#generally, the interactive models have too many high and low VIFS
+#buds and newgrowth:volume
+vif(glm.nb(buds~newgrowth * volume, data=master))
+#ok
+
+#fruits and newgrowth:volume
+vif(glm.nb(fruits~newgrowth * volume, data=master))
+#ok, but interaction might be a problem. Might be better to just do as covariates.
+
+#fruits and newgrowth + volume
+vif(glm.nb(fruits~newgrowth + volume, data=master))
+#ok
+
+#fruit weight and newgrowth:volume + dessication
+vif(glm(fruit.weight~newgrowth * volume + dessication, data=master, family="quasipoisson"))
+#ok (ish, that interactor might be a problem)
+
+#fruit volume and newgrowth:volume
+vif(glm.nb(fruit.volume~newgrowth * volume, data= master))
+#ok
 
 ```
+
+
+##Tests for overdispersions in negative binomial versus poisson models versus quasipoisson models
+```{r, overdispersions, warning=FALSE}
+#buds
+#negative binomial
+m1.1 <- glm.nb(buds~newgrowth * volume, data=master)
+summary(m1.1)
+P__disp(m1.1)
+
+#poisson
+m1.2 <- glm(buds~newgrowth * volume, data=master, family="poisson")
+summary(m1.2)
+P__disp(m1.2)
+
+#quasipoisson
+m1.3 <- glm(buds~newgrowth * volume, data=master, family="quasipoisson")
+summary(1.3)
+P__disp(m1.3)
+
+
+#fruits
+#negative binomial
+m2.1 <- glm.nb(fruits~newgrowth * volume, data=master)
+summary(m2.1)
+P__disp(m2.1)
+
+#poisson
+m2.2 <- glm(fruits~newgrowth * volume, data=master, family='poisson')
+summary(m2.2)
+P__disp(m2.2)
+
+#quasipoisson
+m2.3 <- glm(fruits~newgrowth * volume, data=master, family="quasipoisson")
+summary(m2.3)
+P__disp(m2.3)
+
+#negative binomial of predictors as covariates only
+m2.4 <- glm.nb(fruits~newgrowth + volume, data=master)
+summary(m2.4)
+P__disp(m2.4)
+
+#fruit volume
+#negative binomial
+m3.1 <- glm.nb(fruit.volume~newgrowth * volume, data=master)
+summary(m3.1)
+P__disp(m3.1)
+
+#poisson
+m3.2 <- glm(fruit.volume~newgrowth * volume, data=master, family="poisson")
+summary(m3.2)
+P__disp(m3.2)
+
+#quasipoisson
+m3.3 <- glm(fruit.volume~newgrowth * volume, data=master, family="quasipoisson")
+summary(m3.3)
+P__disp(m3.3)
+
+
+#fruit weight
+#negative binomial
+m4.1 <- glm.nb(fruit.weight~newgrowth * volume + dessication, data=master)
+summary(m4.1)
+P__disp(m4.1)
+
+#poisson
+m4.2 <- glm(fruit.weight~newgrowth * volume + dessication, data=master, family="poisson")
+summary(m4.2)
+P__disp(m4.2)
+
+#quasipoisson
+m4.3 <- glm(fruit.weight~newgrowth * volume + dessication, data=master, family="quasipoisson")
+summary(m4.3)
+P__disp(m4.3)
+
+#For buds, fruits, and fruit volume, I think we need to use a negative binomial model, whereas for fruit weight, we ought to use quasipoisson.
+
+```
+
+##Residuals of main models
+```{r, residuals, warning=FALSE}
+#buds
+plot(residuals(m1.1))
+
+#fruits
+plot(residuals(m2.1))
+
+#fruit volume
+plot(residuals(m3.1))
+
+#fruit weight
+plot(residuals(m4.3))
+```
+
+
+##Main Models
+These are the main models to answer our hypotheses.
+```{r, main models, warnings=FALSE}
+#buds
+m1 <- glm.nb(buds~newgrowth*volume, data=master)
+summary(m1)
+
+#fruits
+m2 <- glm.nb(fruits~newgrowth + volume, data=master) #must do only as covariates as dictated by VIFs
+summary(m2)
+
+#fruit weight
+m3 <- glm(fruit.weight~newgrowth * volume + dessication, data=master, family="quasipoisson") #must 
+summary(m3)
+
+#fruit volume
+m4 <- glm.nb(fruit.volume~newgrowth * volume, data=master)
+summary(m4)
+
+```
+
 
 
 ##Allocation between physical and reproductive structures: Buds
 ```{r, bud allocation models, warning=FALSE}
 #Volume as a predictor for repro output
-m1 <- glm(buds~volume, data=paired, family="quasipoisson")
-summary(m1) #significant
+m32 <- glm(buds~volume, data=paired, family="quasipoisson")
+summary(m32) #significant
 
 #New growth as predictor for repro output
-m2 <- glm(buds~newgrowth, data=paired, family="quasipoisson")
-summary(m2) #significant
+m33 <- glm(buds~newgrowth, data=paired, family="quasipoisson")
+summary(m33) #significant
 
 #Number of branches as predictor for repro output
-m3 <- glm(buds~branches, data=paired, family="quasipoisson")
-summary(m3) #significant
+m34 <- glm(buds~branches, data=paired, family="quasipoisson")
+summary(m34) #significant
 
 #All are significant, so let's include all in one model
-m4 <- glm(buds~newgrowth + volume + branches, data=paired, family="quasipoisson")
-summary(m4) #significant
+m35 <- glm(buds~newgrowth + volume + branches, data=paired, family="quasipoisson")
+summary(m35) #significant
 #posthoc of model that includes all factors
-anova(m4, test="Chisq") #all factors important.
+anova(m35, test="Chisq") #all factors important.
 
-m5 <- glm(buds~newgrowth * volume * branches, data=paired, family="quasipoisson")
-summary(m5) #branches and volume:branches are significant, but this is an inappropriate model due to high VIFS
+m36 <- glm.nb(buds~newgrowth * volume, data=paired)
+summary(m36) #branches and volume:branches are significant, but this is an inappropriate model due to high VIFS
 #posthoc of model with all factors interactors 
-anova(m5, test="Chisq")
+anova(m36, test="Chisq")
 
-#Let's have volume (and then again number of branches) be considered as random factors, and try some GLMMs. 
+m37 <- glm(buds~newgrowth*volume, data=master, family="quasipoisson")
+summary(m37)
 
-m6 <- glmer(buds~newgrowth + (1|volume) + (1|branches), data=paired, family="poisson")
-summary(m6)
-#posthoc of model with volume and branches as random factors
-anova(m6, test="Chisq") #significant, but maybe not really a good model, biologically speaking. 
 ```
 
 ##Allocation between physical and reproductive structures: Fruit
@@ -473,9 +606,8 @@ summary(m30) #only newgrowth is significant
 anova(m30, test="Chisq") #still, newgrowth is the only significant predictor
 
 #interactions
-m31 <- glm(fruits ~ newgrowth * volume * branches, data=master, family="quasipoisson")
-summary(m31) #no significance and VIFs recommend against this model
-
+m31 <- glm(fruits ~ newgrowth * volume, data=master, family="quasipoisson")
+summary(m31) 
 
 
 ```
